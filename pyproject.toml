@@ -1,0 +1,75 @@
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "employer-entity-resolution-platform"
+version = "0.10.0"
+description = "Explainable employer entity resolution and master-data pipeline"
+readme = "README.md"
+requires-python = ">=3.12,<3.14"
+license = { text = "All Rights Reserved" }
+authors = [{ name = "Alexis Lopez" }]
+dependencies = [
+  "openpyxl>=3.1.5,<4",
+  "pyarrow>=21,<24",
+  "pydantic>=2.11,<3",
+  "PyYAML>=6.0.2,<7",
+  "rapidfuzz>=3.14,<4",
+]
+
+[project.scripts]
+credit-risk-er = "credit_risk_er.cli:main"
+
+[project.optional-dependencies]
+dev = [
+  "hypothesis>=6.138,<7",
+  "mypy>=1.17,<2",
+  "pip-audit>=2.9,<3",
+  "pre-commit>=4.3,<5",
+  "pytest>=9.0.3,<10",
+  "pytest-cov>=6.2,<8",
+  "ruff>=0.12,<1",
+  "types-PyYAML>=6.0.12.20250516",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/credit_risk_er"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+extend-exclude = ["input", "data", "output"]
+
+[tool.ruff.lint]
+select = ["B", "E4", "E7", "E9", "F", "I", "RUF", "SIM", "UP"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unreachable = true
+show_error_codes = true
+pretty = true
+mypy_path = "src"
+
+[[tool.mypy.overrides]]
+module = ["openpyxl", "openpyxl.*", "pyarrow", "pyarrow.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+addopts = ["-ra", "--strict-config", "--strict-markers"]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.coverage.run]
+branch = true
+source = ["credit_risk_er"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false

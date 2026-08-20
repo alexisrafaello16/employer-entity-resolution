@@ -1,0 +1,223 @@
+source:
+  workbook: data/sample/synthetic_employers.xlsx
+  sheet_name: Sheet1
+  column: nombre_original
+  expected_sha256: 0036A9305EBBB3469659A2922BD4E5859712127789CEC312D83BBFCC97D49E2C
+  expected_sheet_names:
+    - Sheet1
+
+normalization:
+  ruleset_version: "1.0.0"
+  possible_truncation_content_lengths:
+    - 30
+  trailing_numeric_candidate_max_digits: 1
+  corporate_suffix_aliases:
+    SA: [S A, SA]
+    SAS: [S A S, SAS]
+    INC: [INC]
+    CORP: [CORP]
+    LLC: [L L C, LLC]
+    LTDA: [LTDA]
+    CIA: [CIA]
+
+record_typing:
+  ruleset_version: "2.3.0"
+  address:
+    explicit_tokens:
+      - CALLE
+      - AVENIDA
+      - AVE
+      - AV
+      - EDIFICIO
+      - EDIF
+      - PH
+      - URBANIZACION
+      - APARTAMENTO
+      - BARRIADA
+      - CORREGIMIENTO
+    contextual_tokens: [VIA, TORRE, RESIDENCIAL, PLAZA]
+    intersection_markers: [ESQUINA, INTERSECCION, CON CALLE, Y CALLE]
+    moderate_score: 2
+    strong_score: 4
+  occupation:
+    status_phrases:
+      - DEPENDIENTE ECONOMICO
+      - AMA DE CASA
+      - NO LABORA
+      - INDEPENDIENTE
+      - DESEMPLEADO
+      - DESEMPLEADA
+      - PENSIONADO
+      - PENSIONADA
+      - ESTUDIANTE
+      - JUBILADO
+      - JUBILADA
+  organization:
+    corporate_suffix_tokens: [SA, SAS, INC, CORP, LLC, LTDA, CIA]
+    organization_tokens:
+      - ASOCIACION
+      - AUTORIDAD
+      - BANCO
+      - CAJA
+      - CLINICA
+      - CONSTRUCTORA
+      - COOPERATIVA
+      - CORPORACION
+      - EMPRESA
+      - EMPRESAS
+      - FUNDACION
+      - GRUPO
+      - HOSPITAL
+      - INDUSTRIAS
+      - INSTITUTO
+      - MEDICA
+      - MEDICO
+      - MINISTERIO
+      - MUNICIPIO
+      - SEGURO
+      - SERVICIOS
+      - UNIVERSIDAD
+
+processing:
+  batch_size: 10000
+  output_dataset: data/processed/preprocessed_employers.parquet
+  metrics_file: data/processed/preprocessing_metrics.json
+  manifest_file: data/processed/run_manifest.json
+  parquet_compression: zstd
+
+reference_data:
+  employer_master: data/reference/employer_master.csv
+  employer_aliases: data/reference/employer_aliases.csv
+
+resolution:
+  output_dataset: data/processed/resolved_employers.parquet
+  metrics_output: data/processed/resolution_metrics.json
+
+candidate_generation:
+  resolution_keys_output: data/processed/resolution_keys.parquet
+  candidate_pairs_output: data/processed/candidate_pairs.parquet
+  metrics_output: data/processed/candidate_generation_metrics.json
+  maximum_block_size: 50
+  minimum_truncation_prefix_length: 20
+  minimum_informative_token_length: 5
+  maximum_token_frequency: 50
+  prefix_signature_length: 8
+  minimum_typo_token_length: 6
+  maximum_typo_signature_frequency: 25
+  maximum_typo_context_frequency: 1000
+
+candidate_scoring:
+  input_dataset: data/processed/candidate_pairs.parquet
+  output_dataset: data/processed/candidate_pair_features.parquet
+  metrics_output: data/processed/candidate_scoring_metrics.json
+  batch_size: 25000
+
+pair_decision:
+  input_dataset: data/processed/candidate_pair_features.parquet
+  resolution_keys_dataset: data/processed/resolution_keys.parquet
+  output_dataset: data/processed/pair_resolution_decisions.parquet
+  metrics_output: data/processed/pair_decision_metrics.json
+  batch_size: 25000
+  minimum_whitespace_compact_length: 5
+
+employer_eligibility:
+  ruleset_version: "1.0.0"
+  preprocessed_dataset: data/processed/preprocessed_employers.parquet
+  resolution_keys_dataset: data/processed/resolution_keys.parquet
+  output_dataset: data/processed/employer_eligibility.parquet
+  metrics_output: data/processed/employer_eligibility_metrics.json
+  batch_size: 25000
+  structural_address_road_type_tokens:
+    - ST
+    - STREET
+    - RD
+    - ROAD
+    - AVE
+    - AVENUE
+    - BLVD
+    - BOULEVARD
+    - DR
+    - DRIVE
+    - LN
+    - LANE
+    - HWY
+    - HIGHWAY
+
+orthographic_resolution:
+  ruleset_version: "2.1.0"
+  pair_decisions_dataset: data/processed/pair_resolution_decisions.parquet
+  employer_eligibility_dataset: data/processed/employer_eligibility.parquet
+  candidate_features_dataset: data/processed/candidate_pair_features.parquet
+  output_dataset: data/processed/orthographic_pair_decisions.parquet
+  metrics_output: data/processed/orthographic_resolution_metrics.json
+  batch_size: 25000
+
+residual_profile:
+  ruleset_version: "1.0.0"
+  orthographic_decisions_dataset: data/processed/orthographic_pair_decisions.parquet
+  candidate_features_dataset: data/processed/candidate_pair_features.parquet
+  resolution_keys_dataset: data/processed/resolution_keys.parquet
+  employer_eligibility_dataset: data/processed/employer_eligibility.parquet
+  output_dataset: data/processed/residual_relationship_profile.parquet
+  metrics_output: data/processed/residual_relationship_profile_metrics.json
+  batch_size: 25000
+
+distinctive_evidence:
+  ruleset_version: "1.0.0"
+  residual_profile_dataset: data/processed/residual_relationship_profile.parquet
+  employer_eligibility_dataset: data/processed/employer_eligibility.parquet
+  resolution_keys_dataset: data/processed/resolution_keys.parquet
+  output_dataset: data/processed/distinctive_name_evidence.parquet
+  metrics_output: data/processed/distinctive_name_evidence_metrics.json
+  batch_size: 25000
+
+multi_evidence_assessment:
+  ruleset_version: "1.0.0"
+  residual_profile_dataset: data/processed/residual_relationship_profile.parquet
+  distinctive_evidence_dataset: data/processed/distinctive_name_evidence.parquet
+  candidate_features_dataset: data/processed/candidate_pair_features.parquet
+  orthographic_decisions_dataset: data/processed/orthographic_pair_decisions.parquet
+  output_dataset: data/processed/multi_evidence_assessment.parquet
+  metrics_output: data/processed/multi_evidence_assessment_metrics.json
+  batch_size: 25000
+
+finalization:
+  ruleset_version: "1.1.0"
+  preprocessed_dataset: data/processed/preprocessed_employers.parquet
+  resolution_keys_dataset: data/processed/resolution_keys.parquet
+  pair_decisions_dataset: data/processed/pair_resolution_decisions.parquet
+  employer_eligibility_dataset: data/processed/employer_eligibility.parquet
+  public_enrichment_csv: data/reference/public_employer_enrichment.csv
+  parquet_output: output/employer_resolution_final.parquet
+  csv_output: output/employer_resolution_final.csv
+  metrics_output: output/finalization_metrics.json
+  top_keys_output: output/top_employer_resolution_keys.csv
+  top_key_limit: 40
+  batch_size: 25000
+  sector_keyword_rules:
+    Administración pública: [MINISTERIO, MUNICIPIO, ALCALDIA, AUTORIDAD, GOBIERNO, CONTRALORIA, POLICIA, EMBAJADA]
+    Educación: [UNIVERSIDAD, UNIVERSITY, COLEGIO, SCHOOL, ESCUELA, ACADEMIA, EDUCACION, EDUCATION]
+    Salud: [HOSPITAL, CLINICA, SALUD, MEDICA, MEDICAL, MEDICO, FARMACIA, PHARMACY]
+    Servicios financieros y seguros: [BANCO, BANK, FINANCIERA, FINANCIAL, INSURANCE, SEGUROS, CREDIT, CREDITO]
+    Construcción e ingeniería: [CONSTRUCTORA, CONSTRUCTION, CONSTRUCCION, ENGINEERING, INGENIERIA, CONTRACTORS, INFRAESTRUCTURA]
+    Logística y transporte: [LOGISTICS, LOGISTICA, TRANSPORTE, TRANSPORT, CARGO, SHIPPING, FREIGHT]
+    Tecnología y telecomunicaciones: [SOFTWARE, TECHNOLOGY, TECHNOLOGIES, TECNOLOGIA, TELECOM, TELECOMMUNICATIONS]
+    Energía y servicios públicos: [ENERGY, ENERGIA, ELECTRIC, ELECTRICA, ELECTRICIDAD, SOLAR, PETROLEUM, PETROLEO]
+    Manufactura e industria: [INDUSTRIAS, INDUSTRIAL, MANUFACTURING, FACTORY, FABRICA]
+    Medios y publicidad: [MEDIA, COMMUNICATIONS, COMUNICACIONES, PUBLICIDAD, ADVERTISING]
+    Automotriz: [AUTOMOTRIZ, AUTOMOTIVE, MOTORS, VEHICULOS]
+    Marítimo y portuario: [MARITIME, MARITIMA, PORT, PORTUARIA]
+    Minería: [MINING, MINERA, MINERIA]
+    Seguridad privada: [SEGURIDAD, SECURITY, VIGILANCIA]
+    Agricultura y agroindustria: [AGRICOLA, AGRICULTURA, AGRO, CULTIVOS, GANADERIA]
+    Alimentos y bebidas: [ALIMENTOS, FOOD, RESTAURANT, RESTAURANTE, CAFE, PANADERIA, BEBIDAS]
+    Hotelería y turismo: [HOTEL, HOTELES, RESORT, TOURISM, TURISMO, TRAVEL]
+    Comercio y distribución: [SUPERMERCADO, SUPERMERCADOS, STORE, TIENDA, DISTRIBUIDORA, DISTRIBUTOR]
+    Servicios profesionales: [ABOGADOS, LAW, LEGAL, AUDITORES, CONSULTING, CONSULTORES, CONSULTORIA]
+    Bienes raíces: [INMOBILIARIA, PROPERTIES, PROPERTY]
+
+evaluation:
+  pair_sample_size: 600
+  blocking_miss_sample_size: 150
+  random_seed: 20260813
+  output_directory: data/evaluation
