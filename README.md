@@ -7,6 +7,10 @@
 ![Tests](https://img.shields.io/badge/tests-445%20passed-brightgreen)
 ![Code Quality](https://img.shields.io/badge/quality-Ruff%20%7C%20mypy-brightgreen)
 
+## Platform Overview
+
+![Employer Entity Resolution & Master Data Platform](docs/assets/employer-entity-resolution-overview.png)
+
 Free-text employer fields are deceptively difficult: the same organization may appear under legal-suffix variants, abbreviations, typos, truncations, numeric variants, addresses, occupations, or incomplete values.
 
 This project addresses that problem with a **deterministic, auditable, and incremental Entity Resolution pipeline** rather than a single fuzzy-match threshold.
