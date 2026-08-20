@@ -1,25 +1,59 @@
 # Employer Entity Resolution & Master Data Platform
 
-**An explainable, precision-first pipeline for turning noisy employer names into trusted canonical entities and reusable master data.**
+**An explainable, precision-first pipeline for turning noisy employer records into trusted canonical entities and reusable master data.**
 
-Free-text employer fields are deceptively difficult: the same organization may appear under legal-suffix variants, abbreviations, typos, truncations, numeric variants, addresses, occupations, or incomplete values. This project resolves that problem with a deterministic and auditable pipeline rather than a single fuzzy-match threshold.
+[![CI](https://github.com/alexisrafaello16/employer-entity-resolution/actions/workflows/ci.yml/badge.svg)](https://github.com/alexisrafaello16/employer-entity-resolution/actions/workflows/ci.yml)
+![Python](https://img.shields.io/badge/Python-3.12%20%7C%203.13-3776AB?logo=python&logoColor=white)
+![Tests](https://img.shields.io/badge/tests-445%20passed-brightgreen)
+![Code Quality](https://img.shields.io/badge/quality-Ruff%20%7C%20mypy-brightgreen)
 
-> **Portfolio edition:** the public repository uses a fully synthetic, reproducible dataset. The original private dataset is not distributed.
+Free-text employer fields are deceptively difficult: the same organization may appear under legal-suffix variants, abbreviations, typos, truncations, numeric variants, addresses, occupations, or incomplete values.
 
-## Why this project matters
+This project addresses that problem with a **deterministic, auditable, and incremental Entity Resolution pipeline** rather than a single fuzzy-match threshold.
 
-Poor entity quality propagates into concentration analysis, segmentation, customer or employer analytics, data governance, and risk models. The pipeline creates a reusable entity layer while deliberately **abstaining when evidence is insufficient**, protecting the Corporate Master from low-confidence merges.
+> **Portfolio edition:** this public repository uses a fully synthetic, reproducible dataset. The original private dataset is not distributed.
 
-### What it demonstrates
+## Key Results
 
-- Entity Resolution / Record Linkage
-- Data Engineering and reproducible batch pipelines
-- Data Quality and Master Data Management (MDM)
-- Candidate generation instead of all-vs-all comparison
-- Explainable multi-evidence matching
-- Conservative abstention and quality gates
-- Incremental reference reuse
-- Automated testing, typing, linting, CLI, CSV and Parquet outputs
+| Metric | Result |
+|---|---:|
+| Source records processed | **323,001** |
+| Candidate pairs generated | **2,195,333** |
+| Canonical master entities after conservative resolution | **257,711** |
+| Source aliases represented | **308,748** |
+| Early exact resolutions on the second run | **88,690** |
+| Candidate-pair reduction on the second run | **601,671 / ~27.4%** |
+| Automated tests | **445 passed** |
+| Static quality checks | **Ruff passed · mypy passed** |
+
+The most important operational result came from **incremental reference reuse**: trusted knowledge created during the first execution resolved **88.7K records before residual matching** in the next run, reducing the downstream candidate universe by approximately **27.4%**.
+
+## Business Problem
+
+Employer information captured as free text is often inconsistent, duplicated, incomplete, or structurally ambiguous.
+
+Typical examples include:
+
+- legal-suffix variants;
+- abbreviations and aliases;
+- misspellings;
+- truncated company names;
+- numeric variants;
+- addresses entered as employers;
+- occupations or employment statuses;
+- incomplete records;
+- multiple textual representations of the same organization.
+
+Without a trusted entity layer, those inconsistencies propagate into:
+
+- concentration analysis;
+- segmentation;
+- employer or customer analytics;
+- data governance;
+- financial-risk workflows;
+- downstream models and reporting.
+
+The objective is not to force every record into a company. The objective is to create **trusted canonical entities, reusable aliases, and traceable decisions** while abstaining when the available evidence is not strong enough.
 
 ## Architecture
 
@@ -44,24 +78,33 @@ flowchart TD
     P --> Q[Reusable knowledge for next run]
 ```
 
-The design separates **evidence generation** from **identity decisions**. That makes the resolution path inspectable and prevents similarity scores from silently becoming truth.
+The design deliberately separates **evidence generation** from **identity decisions**. Similarity scores are treated as evidence, not as truth.
 
-## Benchmark snapshot
+## Precision-First Resolution
 
-The following aggregate measurements were obtained on a larger private-source execution. They are presented as sanitized engineering benchmarks; the private records are not included in this repository.
+The system does **not** force every source record into a canonical company.
 
-| Metric | Measured result | Why it matters |
-|---|---:|---|
-| Source records processed | **323,001** | Demonstrates non-trivial batch scale |
-| Candidate pairs generated | **2,195,333** | Bounded search replaces all-vs-all comparison |
-| Initial Corporate Master | **257,711 entities** | Conservative canonicalization avoids aggressive merges |
-| Aliases represented | **308,748** | Preserves source variants for future resolution |
-| Exact resolutions on second run | **88,690** | Persistent knowledge resolves records before residual matching |
-| Candidate-pair reduction | **601,671 / ~27.4%** | Incremental reuse reduces downstream comparison work |
-| Automated tests | **445 passed** | Software-quality controls around data logic |
-| Static quality snapshot | **Ruff: all checks passed; mypy: success** | Linting and strict typing across the source package |
+```text
+Strong evidence       -> resolve / canonicalize
+Insufficient evidence -> abstain
+Unsafe master entry   -> do not promote
+```
 
-### Incremental resolution cycle
+A false merge can contaminate downstream analytics and persistent master data. An unresolved record, by contrast, remains reviewable.
+
+For that reason, **abstention is a product feature rather than a failure condition**.
+
+### Core capabilities demonstrated
+
+- **Entity Resolution & Record Linkage**
+- **Data Engineering & reproducible batch pipelines**
+- **Data Quality & Master Data Management**
+- **Explainable multi-evidence matching**
+- **Conservative abstention and quality gates**
+- **Incremental reference reuse**
+- **Software engineering: tests, CI, typing, linting, configuration and CLI**
+
+## Incremental Resolution Cycle
 
 ```mermaid
 flowchart LR
@@ -73,23 +116,28 @@ flowchart LR
     EM --> RED[~27.4% fewer candidate pairs]
 ```
 
-This is a key design property: trusted knowledge created in one run can lower the matching workload in later runs without weakening decision thresholds.
+Trusted knowledge created in one run can reduce matching work in future runs **without weakening decision thresholds**.
 
-## Precision-first design
+## Benchmark Snapshot
 
-The system does **not** force every record into a company. A record can remain unresolved when evidence is weak, contradictory, address-like, status-like, or incomplete.
+The following aggregate measurements were obtained on a larger private-source execution. They are presented as **sanitized engineering benchmarks**; the underlying private records are not included in this repository.
 
-```text
-Strong evidence      -> resolve / canonicalize
-Insufficient evidence -> abstain
-Unsafe master entry   -> do not promote
-```
+| Metric | Measured result | Why it matters |
+|---|---:|---|
+| Source records processed | **323,001** | Demonstrates non-trivial batch scale |
+| Candidate pairs generated | **2,195,333** | Bounded search replaces all-vs-all comparison |
+| Initial Corporate Master | **257,711 canonical entities** | Conservative resolution preserves uncertain records instead of forcing low-confidence merges |
+| Aliases represented | **308,748** | Preserves source variants for future resolution |
+| Exact resolutions on second run | **88,690** | Persistent knowledge resolves records before residual matching |
+| Candidate-pair reduction | **601,671 / ~27.4%** | Incremental reuse reduces downstream comparison work |
+| Automated tests | **445 passed** | Software-quality controls around data logic |
+| Static quality snapshot | **Ruff: all checks passed; mypy: success** | Linting and strict typing across the source package |
 
-Abstention is a product feature: a false merge can contaminate downstream analytics and future matching, while an unresolved record remains reviewable.
+## Public Synthetic Dataset
 
-## Public synthetic dataset
+The public demo intentionally reproduces the **problem shape** without exposing source data.
 
-The public demo intentionally reproduces the problem shape without exposing source data. It includes fictional examples of:
+It includes fictional examples of:
 
 - spelling errors and single-character edits;
 - abbreviations and spacing variation;
@@ -125,7 +173,7 @@ Default committed workbook SHA-256:
 
 If you generate a different row count or seed, update `source.expected_sha256` in `config/config.yaml` with the hash printed by the generator.
 
-## Example problem
+## Example Problem
 
 | Raw value | Intended interpretation |
 |---|---|
@@ -138,21 +186,61 @@ If you generate a different row count or seed, update `source.expected_sha256` i
 | `SERVICIOS GENERALES` | ambiguous; conservative handling |
 | `UNKNOWN` | insufficient information |
 
-See `examples/` for compact, human-readable portfolio examples.
+See [`examples/`](examples/) for compact, human-readable portfolio examples.
 
-## Repository structure
+## Engineering Decisions
+
+### Candidate generation instead of Cartesian comparison
+
+All-vs-all comparison grows quadratically.
+
+The pipeline first creates bounded candidate sets using deterministic blocking and signature strategies, then computes richer evidence only for plausible pairs.
+
+### Multi-evidence resolution instead of one fuzzy threshold
+
+String similarity alone can produce false positives between common or structurally similar company names.
+
+The system combines:
+
+- structural evidence;
+- orthographic evidence;
+- token distinctiveness;
+- numeric consistency;
+- employer eligibility;
+- reference evidence;
+
+before finalization.
+
+### Quality-gated master promotion
+
+A canonical entity is **not automatically allowed** to become persistent reference knowledge.
+
+The quality gate separates promotable entities from suspicious or non-promotable entities, reducing the risk of **master-data contamination**.
+
+### Determinism and auditability
+
+Rules and thresholds are centralized in `config/config.yaml`.
+
+Intermediate artifacts and stage-level metrics make the resolution path traceable from raw record to final entity decision.
+
+## Repository Structure
 
 ```text
 .
-├── .github/workflows/ci.yml
-├── config/config.yaml
+├── .github/
+│   └── workflows/
+│       └── ci.yml
+├── config/
+│   └── config.yaml
 ├── data/
 │   ├── sample/
 │   └── reference/
 ├── docs/
 ├── examples/
-├── scripts/generate_synthetic_data.py
-├── src/credit_risk_er/
+├── scripts/
+│   └── generate_synthetic_data.py
+├── src/
+│   └── credit_risk_er/
 ├── tests/
 ├── NOTICE.md
 ├── LICENSE
@@ -164,19 +252,56 @@ See `examples/` for compact, human-readable portfolio examples.
 
 ## Installation
 
-Python 3.12 or 3.13 is supported.
+Python **3.12 or 3.13** is supported.
+
+Create the virtual environment:
 
 ```bash
 python -m venv .venv
-source .venv/bin/activate          # Linux/macOS
-# .venv\Scripts\activate        # Windows PowerShell
+```
+
+### Linux / macOS
+
+```bash
+source .venv/bin/activate
+```
+
+### Windows PowerShell
+
+```powershell
+.venv\Scripts\Activate.ps1
+```
+
+Install the project and development dependencies:
+
+```bash
 python -m pip install --upgrade pip
 pip install -e ".[dev]"
 ```
 
-## Run the pipeline
+## Run the Pipeline
 
-The existing CLI and processing logic are preserved. From the repository root:
+The project exposes a stage-based CLI:
+
+```text
+Preprocessing
+→ Exact Reference Resolution
+→ Candidate Generation
+→ Candidate Scoring
+→ Deterministic Pair Decisions
+→ Employer Eligibility
+→ Orthographic Evidence
+→ Residual Profiling
+→ Distinctive Evidence
+→ Multi-Evidence Assessment
+→ Finalization
+→ Corporate Master
+→ Canonical Quality Gate
+→ Reference Promotion
+```
+
+<details>
+<summary><strong>Show CLI commands</strong></summary>
 
 ```bash
 python -m credit_risk_er preprocess
@@ -195,27 +320,15 @@ python -m credit_risk_er assess-canonical-quality
 python -m credit_risk_er promote-references
 ```
 
-Use the CLI help for stage-specific overrides:
+</details>
+
+For stage-specific options:
 
 ```bash
 python -m credit_risk_er --help
 ```
 
-## Engineering decisions
-
-### Candidate generation instead of Cartesian comparison
-All-vs-all matching grows quadratically. The pipeline first creates bounded candidate sets using deterministic blocking/signature strategies, then computes richer evidence only for plausible pairs.
-
-### Multi-evidence resolution instead of one fuzzy threshold
-String similarity alone can create false positives between common or structurally similar company names. The system combines structural, orthographic, token-distinctiveness, numeric, eligibility, and reference evidence before finalization.
-
-### Quality-gated master promotion
-A canonical entity is not automatically allowed to become persistent reference knowledge. The quality gate separates promotable from suspicious/non-promotable entities to reduce **master-data contamination**.
-
-### Determinism and auditability
-Rules and thresholds are centralized in `config/config.yaml`; intermediate artifacts and metrics make the pipeline traceable stage by stage.
-
-## Testing and code quality
+## Testing and Code Quality
 
 ```bash
 pytest
@@ -223,17 +336,35 @@ ruff check .
 mypy src
 ```
 
-The source package includes extensive unit and pipeline-level tests covering normalization, candidate generation, fuzzy features, deterministic decisions, eligibility, orthographic evidence, residual profiling, multi-evidence assessment, finalization, master construction, quality gates, and incremental behavior.
+The test suite covers:
 
-## Trade-offs and limitations
+- normalization;
+- record typing;
+- candidate generation;
+- fuzzy features;
+- deterministic pair decisions;
+- employer eligibility;
+- orthographic evidence;
+- residual profiling;
+- distinctive-token evidence;
+- multi-evidence assessment;
+- finalization;
+- Corporate Master construction;
+- canonical quality gates;
+- reference promotion;
+- incremental behavior.
 
-- The public data is synthetic, so public-demo metrics are not intended to reproduce the private benchmark.
-- The current approach is intentionally rules/evidence-driven rather than supervised ML because labeled match/non-match pairs are not assumed.
+GitHub Actions runs the quality workflow automatically on pushes and pull requests.
+
+## Trade-offs and Limitations
+
+- The public dataset is synthetic, so public-demo metrics are not intended to reproduce the private benchmark.
+- The current approach is deliberately rules/evidence-driven rather than supervised ML because labeled match/non-match pairs are not assumed.
 - Conservative abstention trades recall for safer precision and master quality.
-- Public validation/enrichment is intentionally empty in the synthetic demo; no fictional company is presented as externally verified.
-- For millions of rows, candidate blocking and storage/execution layers would be adapted to distributed or database-native processing while retaining the same decision principles.
+- Public validation and enrichment are intentionally empty in the synthetic demo; no fictional company is represented as externally verified.
+- At multi-million-row scale, candidate blocking and storage/execution layers would be adapted to distributed or database-native processing while preserving the same decision principles.
 
-## Where this pattern applies
+## Where This Pattern Applies
 
 The architecture generalizes beyond employer data to:
 
@@ -242,7 +373,8 @@ The architecture generalizes beyond employer data to:
 - company/entity matching;
 - KYC and financial-data quality;
 - product or catalogue record linkage;
-- Master Data Management and Data Governance workflows.
+- Master Data Management;
+- Data Governance workflows.
 
 ## Documentation
 
@@ -253,4 +385,6 @@ The architecture generalizes beyond employer data to:
 
 ## License
 
-Source code is published for portfolio/review purposes under the terms in [LICENSE](LICENSE). The synthetic data is fictional.
+Source code is published for portfolio and review purposes under the terms in [LICENSE](LICENSE).
+
+The public synthetic dataset is fictional and does not contain records from the original private source.
