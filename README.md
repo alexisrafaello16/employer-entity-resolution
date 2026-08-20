@@ -9,7 +9,7 @@
 
 ## Platform Overview
 
-![Employer Entity Resolution & Master Data Platform](docs/assets/employer-entity-resolution-overview.png)
+[![Employer Entity Resolution & Master Data Platform](docs/assets/employer-entity-resolution-overview.png)](docs/assets/employer-entity-resolution-overview.png)
 
 Free-text employer fields are deceptively difficult: the same organization may appear under legal-suffix variants, abbreviations, typos, truncations, numeric variants, addresses, occupations, or incomplete values.
 
