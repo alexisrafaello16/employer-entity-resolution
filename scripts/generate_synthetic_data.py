@@ -15,14 +15,14 @@ import random
 import re
 import tempfile
 import zipfile
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from openpyxl import Workbook
 
 DEFAULT_ROWS = 5_000
 DEFAULT_SEED = 20260818
-FIXED_TIME = datetime(2026, 1, 1, tzinfo=timezone.utc)
+FIXED_TIME = datetime(2026, 1, 1, tzinfo=UTC)
 ZIP_TIME = (2026, 1, 1, 0, 0, 0)
 
 EMPLOYERS = [
